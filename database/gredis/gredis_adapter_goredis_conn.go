@@ -8,9 +8,9 @@ package gredis
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-redis/redis/v8"
-
 	"github.com/gogf/gf/v2/container/gvar"
 	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/gconv"
@@ -24,6 +24,20 @@ type localAdapterGoRedisConn struct {
 // Do sends a command to the server and returns the received reply.
 // It uses json.Marshal for struct/slice/map type values before committing them to redis.
 func (c *localAdapterGoRedisConn) Do(ctx context.Context, command string, args ...interface{}) (reply *gvar.Var, err error) {
+	startTime := time.Now()
+	defer func(startTime time.Time) {
+		metricReqDur.Observe(int64(time.Since(startTime)/time.Millisecond), c.redis.config.groupName, c.redis.config.Address, command)
+		if err != nil {
+			if gstr.Contains(err.Error(), "nil") {
+				metricMisses.Inc(c.redis.config.groupName, c.redis.config.Address)
+				return
+			}
+			metricReqErr.Inc(c.redis.config.groupName, c.redis.config.Address, command, formatErr(err))
+			return
+		}
+		metricHits.Inc(c.redis.config.groupName, c.redis.config.Address)
+	}(startTime)
+
 	switch gstr.ToLower(command) {
 	case `subscribe`:
 		c.ps = c.redis.client.Subscribe(ctx, gconv.Strings(args)...)

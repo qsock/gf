@@ -82,6 +82,16 @@ func (t *T) AssertNil(value interface{}) {
 	AssertNil(value)
 }
 
+// Panics asserts that the code inside the specified func panics.
+func (t *T) Panics(f func()) {
+	Panics(f)
+}
+
+// NotPanics asserts that the code inside the specified func does NOT panic.
+func (t *T) NotPanics(f func()) {
+	NotPanics(f)
+}
+
 // Error panics with given `message`.
 func (t *T) Error(message ...interface{}) {
 	Error(message...)
